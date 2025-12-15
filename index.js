@@ -3,8 +3,9 @@ const cors = require("cors");
 const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 3000;
-const { MongoClient, ServerApiVersion } = require("mongodb");
-
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+// payment
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
 // madileWare
 
 app.use(express.json());
@@ -50,6 +51,90 @@ async function run() {
       const ObjectId = require("mongodb").ObjectId;
       const result = await clubCollection.findOne({ _id: new ObjectId(id) });
       res.send(result);
+    });
+    // payment related api
+    // app.post("/create-checkout-section", async (req, res) => {
+    //   const paymentInfo = req.body;
+    //   const amount = parseInt(paymentInfo.membershipFee) * 100;
+    //   const session = await stripe.checkout.sessions.create({
+    //     line_items: [
+    //       {
+    //         price_data: {
+    //           currency: "USD",
+
+    //           unit_amount: amount,
+    //           club_data: {
+    //             name: paymentInfo.clubName,
+    //           },
+    //         },
+    //         quantity: 1,
+    //       },
+    //     ],
+    //     customer_email: paymentInfo.email,
+    //     mode: "payment",
+    //     metadata: {
+    //       clubId: paymentInfo.clubId,
+    //     },
+    //     success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success`,
+    //     cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-canceled`,
+    //   });
+    //   console.log(session);
+    //   res.send({ url: session.url });
+    // });
+
+    // payment related api
+    app.post("/create-checkout-section", async (req, res) => {
+      try {
+        const paymentInfo = req.body;
+        const amount = parseInt(paymentInfo.membershipFee) * 100;
+
+        const session = await stripe.checkout.sessions.create({
+          line_items: [
+            {
+              price_data: {
+                currency: "usd",
+                unit_amount: amount,
+                product_data: {
+                  // ✅ সঠিক
+                  name: paymentInfo.clubName,
+                },
+              },
+              quantity: 1,
+            },
+          ],
+          customer_email: paymentInfo.email,
+          mode: "payment",
+          metadata: {
+            clubId: paymentInfo.clubId,
+          },
+          success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-canceled`,
+        });
+
+        res.send({ url: session.url });
+      } catch (error) {
+        console.error("Stripe error:", error.message);
+        res.status(400).send({ error: error.message });
+      }
+    });
+    // payment success
+    app.patch("/payment-success", async (req, res) => {
+      const sessionId = req.query.session_id;
+      // console.log("session id", sessionId);
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      console.log("session retrieve", session);
+      if (session.payment_status === "paid") {
+        const id = session.metadata.clubId;
+        const query = { _id: new ObjectId(id) };
+        const update = {
+          $set: {
+            status: "paid",
+          },
+        };
+        const result = await clubCollection.updateOne(query, update);
+        res.send(result);
+      }
+      res.send({ success: false });
     });
     await client.db("admin").command({ ping: 1 });
     console.log(
