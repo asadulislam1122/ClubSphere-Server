@@ -68,7 +68,7 @@ async function run() {
     //
 
     // payment
-    // ইভেন্ট পেমেন্ট সেশন তৈরি (Server Side)
+
     app.post(
       "/create-event-checkout-session",
       verifyFBtoken,
@@ -113,7 +113,7 @@ async function run() {
         }
       }
     );
-    // 11111
+    // Payment success
 
     app.patch("/payment-success", async (req, res) => {
       try {
@@ -172,7 +172,7 @@ async function run() {
         res.status(500).send({ message: "Internal server error" });
       }
     });
-    // 000000000000000000
+    // event register
     app.get("/my-event-registrations", verifyFBtoken, async (req, res) => {
       const email = req.query.email;
 
@@ -184,7 +184,7 @@ async function run() {
       const result = await eventRegistrationCollection.find(query).toArray();
       res.send(result);
     });
-    // details 11111111111111111111111111
+    // event-details
 
     app.get("/events/:id", async (req, res) => {
       const id = req.params.id;
@@ -192,7 +192,7 @@ async function run() {
       const result = await eventCollection.findOne(query);
       res.send(result);
     });
-    // 22222222
+    // events
     app.get("/events", async (req, res) => {
       const searchText = req.query.searchText;
       const clubName = req.query.clubName;
@@ -220,7 +220,7 @@ async function run() {
       res.send(result);
     });
 
-    // Post a new event 333333333333333333333333
+    // Post a new event
     app.post("/events", verifyFBtoken, async (req, res) => {
       const event = req.body;
 
@@ -228,7 +228,7 @@ async function run() {
       const result = await eventCollection.insertOne(event);
       res.send(result);
     });
-    // 555555555555555555555555
+    // post register
 
     app.post("/event-registrations", verifyFBtoken, async (req, res) => {
       const registration = req.body;
@@ -422,30 +422,16 @@ async function run() {
         res.send(result);
       }
     );
-    // club api
-    // app.get("/club", async (req, res) => {
-    //   const email = req.query.email;
-    //   let query = {};
-    //   if (email) {
-    //     query = { email: email };
-    //   }
-    //   const result = await clubCollection
-    //     .find(query)
-    //     .sort({ createdAt: -1 })
-    //     .toArray();
-    //   res.send(result);
-    // });
-    // club api - মডিফাই করা হয়েছে limit হ্যান্ডেল করার জন্য
+    //  club
     app.get("/club", async (req, res) => {
       const email = req.query.email;
-      const limit = parseInt(req.query.limit); // কুয়েরি থেকে লিমিট নেওয়া হচ্ছে
+      const limit = parseInt(req.query.limit);
 
       let query = {};
       if (email) {
         query = { email: email };
       }
 
-      // যদি limit প্যারামিটার থাকে তবে ততোটি ডাটা আসবে, নাহলে সব আসবে
       const cursor = clubCollection.find(query).sort({ createdAt: -1 });
 
       if (limit) {
